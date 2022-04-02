@@ -1,0 +1,35 @@
+name: pdfx_example
+description: Demonstrates how to use the pdf_renderer plugin.
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=2.16.2 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  pdfx:
+    path: ../
+  internet_file: ^1.0.0+2
+  universal_platform: ^1.0.0+1
+  performance: ^0.1.0+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^1.0.4
+
+#dependency_overrides:
+#  photo_view:
+#    git: https://github.com/bluefireteam/photo_view
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/flutter_tutorial.pdf
+    - assets/hello.pdf
+
