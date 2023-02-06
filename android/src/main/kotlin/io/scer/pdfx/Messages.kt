@@ -158,6 +158,7 @@ class Messages(private val binding : FlutterPlugin.FlutterPluginBinding,
             val width = message.width!!.toInt()
             val height = message.height!!.toInt()
             val format = message.format?.toInt() ?: 1 //0 Bitmap.CompressFormat.PNG
+            val forPrint = message.forPrint ?: false;
             val backgroundColor = message.backgroundColor
             val color = if (backgroundColor != null) Color.parseColor(backgroundColor) else Color.TRANSPARENT
 
@@ -165,7 +166,7 @@ class Messages(private val binding : FlutterPlugin.FlutterPluginBinding,
             val cropX = if (crop) message.cropX!!.toInt() else 0
             val cropY = if (crop) message.cropY!!.toInt() else 0
             val cropH = if (crop) message.cropHeight!!.toInt() else 0
-            val cropW = if (crop) message.width!!.toInt() else 0
+            val cropW = if (crop) message.cropWidth!!.toInt() else 0
 
             val quality = message.quality?.toInt() ?: 100
 
@@ -181,7 +182,7 @@ class Messages(private val binding : FlutterPlugin.FlutterPluginBinding,
             tempOutFolder.mkdirs()
             val tempOutFile = File(tempOutFolder, "$randomFilename.$tempOutFileExtension")
 
-            val pageImage = page.render(tempOutFile, width, height, color, format, crop, cropX, cropY, cropW, cropH, quality)
+            val pageImage = page.render(tempOutFile, width, height, color, format, crop, cropX, cropY, cropW, cropH, quality, forPrint)
             resultResponse.path = pageImage.path
             resultResponse.width = pageImage.width.toLong()
             resultResponse.height = pageImage.height.toLong()
@@ -252,7 +253,7 @@ class Messages(private val binding : FlutterPlugin.FlutterPluginBinding,
                 val texWidth = message.textureWidth!!.toInt()
                 val texHeight = message.textureHeight!!.toInt()
                 if (texWidth != 0 && texHeight != 0) {
-                    tex.surfaceTexture()?.setDefaultBufferSize(texWidth, texHeight)
+                    tex.surfaceTexture().setDefaultBufferSize(texWidth, texHeight)
                 }
 
                 Surface(tex.surfaceTexture()).use {
@@ -283,8 +284,8 @@ class Messages(private val binding : FlutterPlugin.FlutterPluginBinding,
         result.success(null)
     }
 
-    override fun unregisterTexture(message: Pigeon.UnregisterTextureMessage?) {
-        val id = message!!.id!!.toInt()
+    override fun unregisterTexture(message: Pigeon.UnregisterTextureMessage) {
+        val id = message.id!!.toInt()
         val tex = textures[id]
         tex?.release()
         textures.remove(id)

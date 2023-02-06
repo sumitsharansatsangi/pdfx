@@ -2,22 +2,23 @@ import 'dart:async';
 import 'dart:typed_data' show Uint8List;
 import 'dart:ui';
 
-import 'package:extension/enum.dart';
 import 'package:meta/meta.dart';
+
 import 'document.dart';
 
 part 'page_image.dart';
 part 'page_texture.dart';
 
 /// Image compression format
-class PdfPageImageFormat extends Enum<int> {
-  const PdfPageImageFormat(int val) : super(val);
+enum PdfPageImageFormat {
+  jpeg(0),
+  png(1),
+  // /// ***Attention!*** Works only on android
+  // static const PdfPageImageFormat webp = PdfPageImageFormat(2);
+  webp(2);
 
-  static const PdfPageImageFormat jpeg = PdfPageImageFormat(0);
-  static const PdfPageImageFormat png = PdfPageImageFormat(1);
-
-  /// ***Attention!*** Works only on android
-  static const PdfPageImageFormat webp = PdfPageImageFormat(2);
+  const PdfPageImageFormat(this.value);
+  final int value;
 }
 
 /// An integral part of a document is its page,
@@ -61,6 +62,7 @@ abstract class PdfPage {
   /// [format] - image type, all types can be seen here [PdfPageImageFormat]
   /// [cropRect] - render only the necessary part of the image
   /// [quality] - hint to the JPEG and WebP compression algorithms (0-100)
+  /// [forPrint] - hint to the rendering quality (Android only)
   Future<PdfPageImage?> render({
     required double width,
     required double height,
@@ -68,6 +70,7 @@ abstract class PdfPage {
     String? backgroundColor,
     Rect? cropRect,
     int quality = 100,
+    bool forPrint = false,
     @visibleForTesting bool removeTempFile = true,
   });
 

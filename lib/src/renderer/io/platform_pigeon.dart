@@ -23,27 +23,35 @@ class PdfxPlatformPigeon extends PdfxPlatform {
 
   /// Open PDF document from filesystem path
   @override
-  Future<PdfDocument> openFile(String filePath) async {
+  Future<PdfDocument> openFile(String filePath, {String? password}) async {
     if (UniversalPlatform.isWeb) {
       throw PlatformNotSupportedException();
     }
     return _open(
-      await _api.openDocumentFile(OpenPathMessage()..path = filePath),
+      await _api.openDocumentFile(OpenPathMessage()
+        ..path = filePath
+        ..password = password),
       'file:$filePath',
     );
   }
 
   /// Open PDF document from application assets
   @override
-  Future<PdfDocument> openAsset(String name) async => _open(
-        await _api.openDocumentAsset(OpenPathMessage()..path = name),
+  Future<PdfDocument> openAsset(String name, {String? password}) async => _open(
+        await _api.openDocumentAsset(OpenPathMessage()
+          ..path = name
+          ..password = password),
         'asset:$name',
       );
 
   /// Open PDF file from memory (Uint8List)
   @override
-  Future<PdfDocument> openData(FutureOr<Uint8List> data) async => _open(
-        await _api.openDocumentData(OpenDataMessage()..data = await data),
+  Future<PdfDocument> openData(FutureOr<Uint8List> data,
+          {String? password}) async =>
+      _open(
+        await _api.openDocumentData(OpenDataMessage()
+          ..data = await data
+          ..password = password),
         'memory:binary',
       );
 }
@@ -146,6 +154,7 @@ class PdfPagePigeon extends PdfPage {
     String? backgroundColor,
     Rect? cropRect,
     int quality = 100,
+    bool forPrint = false,
     @visibleForTesting bool removeTempFile = true,
   }) =>
       _lock.synchronized<PdfPageImage?>(() async {
@@ -164,6 +173,7 @@ class PdfPagePigeon extends PdfPage {
           backgroundColor: backgroundColor,
           crop: cropRect,
           quality: quality,
+          forPrint: forPrint,
           removeTempFile: removeTempFile,
         );
       });
@@ -235,6 +245,7 @@ class PdfPageImagePigeon extends PdfPageImage {
     required String? backgroundColor,
     required Rect? crop,
     required int quality,
+    required bool forPrint,
     required bool removeTempFile,
   }) async {
     if (format == PdfPageImageFormat.webp &&
@@ -261,7 +272,8 @@ class PdfPageImagePigeon extends PdfPageImage {
       ..cropY = crop?.top.toInt()
       ..cropWidth = crop?.width.toInt()
       ..cropHeight = crop?.height.toInt()
-      ..quality = quality);
+      ..quality = quality
+      ..forPrint = forPrint);
 
     final retWidth = result.width, retHeight = result.height;
     late final Uint8List pixels;
@@ -315,8 +327,10 @@ class PdfPageTexturePigeon extends PdfPageTexture {
 
   @override
   int? get textureWidth => _texWidth;
+
   @override
   int? get textureHeight => _texHeight;
+
   @override
   bool get hasUpdatedTexture => _texWidth != null;
 

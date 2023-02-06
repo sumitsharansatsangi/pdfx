@@ -1,6 +1,9 @@
 import 'dart:async';
+
+// ignore: unnecessary_import
 import 'dart:typed_data';
 
+// ignore: unnecessary_import
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
@@ -25,7 +28,7 @@ class PdfxPlatformMethodChannel extends PdfxPlatform {
 
   /// Open PDF document from filesystem path
   @override
-  Future<PdfDocument> openFile(String filePath) async {
+  Future<PdfDocument> openFile(String filePath, {String? password}) async {
     if (UniversalPlatform.isWeb) {
       throw PlatformNotSupportedException();
     }
@@ -40,7 +43,7 @@ class PdfxPlatformMethodChannel extends PdfxPlatform {
 
   /// Open PDF document from application assets
   @override
-  Future<PdfDocument> openAsset(String name) async => _open(
+  Future<PdfDocument> openAsset(String name, {String? password}) async => _open(
         (await _channel.invokeMethod<Map<dynamic, dynamic>>(
           'open.document.asset',
           name,
@@ -50,7 +53,9 @@ class PdfxPlatformMethodChannel extends PdfxPlatform {
 
   /// Open PDF file from memory (Uint8List)
   @override
-  Future<PdfDocument> openData(FutureOr<Uint8List> data) async => _open(
+  Future<PdfDocument> openData(FutureOr<Uint8List> data,
+          {String? password}) async =>
+      _open(
         (await _channel.invokeMethod<Map<dynamic, dynamic>>(
           'open.document.data',
           await data,
@@ -152,6 +157,7 @@ class PdfPageMethodChannel extends PdfPage {
     String? backgroundColor,
     Rect? cropRect,
     int quality = 100,
+    bool forPrint = false,
     @visibleForTesting bool removeTempFile = true,
   }) =>
       _lock.synchronized<PdfPageImage?>(() async {
@@ -170,6 +176,7 @@ class PdfPageMethodChannel extends PdfPage {
           backgroundColor: backgroundColor,
           crop: cropRect,
           quality: quality,
+          forPrint: forPrint,
           removeTempFile: removeTempFile,
         );
       });
@@ -236,6 +243,7 @@ class PdfPageImageMethodChannel extends PdfPageImage {
     required String? backgroundColor,
     required Rect? crop,
     required int quality,
+    required bool forPrint,
     required bool removeTempFile,
   }) async {
     if (format == PdfPageImageFormat.webp &&
@@ -263,6 +271,7 @@ class PdfPageImageMethodChannel extends PdfPageImage {
       'crop_height': crop?.height.toInt(),
       'crop_width': crop?.width.toInt(),
       'quality': quality,
+      'forPrint': forPrint,
     });
 
     if (obj is! Map<dynamic, dynamic>) {

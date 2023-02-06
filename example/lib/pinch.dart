@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:internet_file/internet_file.dart';
 import 'package:pdfx/pdfx.dart';
-import 'package:performance/performance.dart';
+import 'package:universal_platform/universal_platform.dart';
 
 class PinchPage extends StatefulWidget {
   const PinchPage({Key? key}) : super(key: key);
 
   @override
-  _PinchPageState createState() => _PinchPageState();
+  State<PinchPage> createState() => _PinchPageState();
 }
 
+enum DocShown { sample, tutorial, hello, password }
+
 class _PinchPageState extends State<PinchPage> {
-  static const int _initialPage = 2;
-  bool _isSampleDoc = true;
+  static const int _initialPage = 1;
+  DocShown _showing = DocShown.sample;
   late PdfControllerPinch _pdfControllerPinch;
 
   @override
@@ -73,31 +75,43 @@ class _PinchPageState extends State<PinchPage> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              if (_isSampleDoc) {
-                _pdfControllerPinch.loadDocument(
-                    PdfDocument.openAsset('assets/flutter_tutorial.pdf'));
-              } else {
-                _pdfControllerPinch
-                    .loadDocument(PdfDocument.openAsset('assets/hello.pdf'));
+              switch (_showing) {
+                case DocShown.sample:
+                case DocShown.tutorial:
+                  _pdfControllerPinch.loadDocument(
+                      PdfDocument.openAsset('assets/flutter_tutorial.pdf'));
+                  _showing = DocShown.hello;
+                  break;
+                case DocShown.hello:
+                  _pdfControllerPinch
+                      .loadDocument(PdfDocument.openAsset('assets/hello.pdf'));
+                  _showing = UniversalPlatform.isWeb
+                      ? DocShown.password
+                      : DocShown.tutorial;
+                  break;
+
+                case DocShown.password:
+                  _pdfControllerPinch.loadDocument(PdfDocument.openAsset(
+                    'assets/password.pdf',
+                    password: 'MyPassword',
+                  ));
+                  _showing = DocShown.tutorial;
+                  break;
               }
-              _isSampleDoc = !_isSampleDoc;
             },
           )
         ],
       ),
-      body: CustomPerformanceOverlay(
-        enabled: false,
-        child: PdfViewPinch(
-          builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
-            options: const DefaultBuilderOptions(),
-            documentLoaderBuilder: (_) =>
-                const Center(child: CircularProgressIndicator()),
-            pageLoaderBuilder: (_) =>
-                const Center(child: CircularProgressIndicator()),
-            errorBuilder: (_, error) => Center(child: Text(error.toString())),
-          ),
-          controller: _pdfControllerPinch,
+      body: PdfViewPinch(
+        builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
+          options: const DefaultBuilderOptions(),
+          documentLoaderBuilder: (_) =>
+              const Center(child: CircularProgressIndicator()),
+          pageLoaderBuilder: (_) =>
+              const Center(child: CircularProgressIndicator()),
+          errorBuilder: (_, error) => Center(child: Text(error.toString())),
         ),
+        controller: _pdfControllerPinch,
       ),
     );
   }

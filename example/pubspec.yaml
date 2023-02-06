@@ -4,14 +4,14 @@ version: 1.0.0
 publish_to: 'none'
 
 environment:
-  sdk: '>=2.16.2 <3.0.0'
+  sdk: '>=2.17.1 <3.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
   pdfx:
     path: ../
-  internet_file: ^1.0.0+2
+  internet_file: ^1.2.0
   universal_platform: ^1.0.0+1
   performance: ^0.1.0+1
 
@@ -20,11 +20,7 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
-  flutter_lints: ^1.0.4
-
-#dependency_overrides:
-#  photo_view:
-#    git: https://github.com/bluefireteam/photo_view
+  flutter_lints: ^2.0.1
 
 flutter:
   uses-material-design: true
@@ -32,4 +28,5 @@ flutter:
   assets:
     - assets/flutter_tutorial.pdf
     - assets/hello.pdf
+    - assets/password.pdf
 

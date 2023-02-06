@@ -1,14 +1,16 @@
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:js' as js;
+
+// ignore: unnecessary_import
 import 'dart:typed_data';
 
+// ignore: unnecessary_import
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:js/js_util.dart' as js_util;
 import 'package:meta/meta.dart';
-
 import 'package:pdfx/src/renderer/interfaces/document.dart';
 import 'package:pdfx/src/renderer/interfaces/page.dart';
 import 'package:pdfx/src/renderer/interfaces/platform.dart';
@@ -24,6 +26,10 @@ int _texId = -1;
 
 class PdfxWeb extends PdfxPlatform {
   PdfxWeb() {
+    assert(
+        checkPdfjsLibInstallation(),
+        'pdf.js not added in web/index.html. '
+        'Run «flutter pub run pdfx:install_web» or add script manually');
     _eventChannel.setController(_eventStreamController);
   }
 
@@ -38,30 +44,33 @@ class PdfxWeb extends PdfxPlatform {
         pagesCount: obj['pagesCount'] as int,
       );
 
-  Future<Map<String, dynamic>> _openDocumentData(ByteBuffer data) async {
-    final document = await pdfjsGetDocumentFromData(data);
+  Future<Map<String, dynamic>> _openDocumentData(ByteBuffer data,
+      {String? password}) async {
+    final document = await pdfjsGetDocumentFromData(data, password: password);
 
     return _documents.register(document).infoMap;
   }
 
   @override
-  Future<PdfDocument> openAsset(String name) async {
+  Future<PdfDocument> openAsset(String name, {String? password}) async {
     final bytes = await rootBundle.load(name);
     final data = bytes.buffer;
-    final obj = await _openDocumentData(data);
+    final obj = await _openDocumentData(data, password: password);
 
     return _open(obj, 'asset:$name');
   }
 
   @override
-  Future<PdfDocument> openData(FutureOr<Uint8List> data) async {
-    final obj = await _openDocumentData((await data).buffer);
+  Future<PdfDocument> openData(FutureOr<Uint8List> data,
+      {String? password}) async {
+    final obj =
+        await _openDocumentData((await data).buffer, password: password);
 
     return _open(obj, 'memory:binary');
   }
 
   @override
-  Future<PdfDocument> openFile(String filePath) {
+  Future<PdfDocument> openFile(String filePath, {String? password}) {
     throw PlatformException(
         code: 'Unimplemented',
         details: 'The plugin for web doesn\'t implement '
@@ -140,6 +149,7 @@ class PdfPageWeb extends PdfPage {
     String? backgroundColor,
     Rect? cropRect,
     int quality = 100,
+    bool forPrint = false,
     @visibleForTesting bool removeTempFile = true,
   }) {
     if (document.isClosed) {
@@ -157,6 +167,7 @@ class PdfPageWeb extends PdfPage {
       backgroundColor: backgroundColor,
       crop: cropRect,
       quality: quality,
+      forPrint: forPrint,
       removeTempFile: removeTempFile,
       pdfJsPage: pdfJsPage,
     );
@@ -223,17 +234,18 @@ class PdfPageImageWeb extends PdfPageImage {
     required String? backgroundColor,
     required Rect? crop,
     required int quality,
+    required bool forPrint,
     required bool removeTempFile,
     required PdfjsPage pdfJsPage,
   }) async {
-    final _viewport = pdfJsPage.getViewport(PdfjsViewportParams(scale: 1));
+    final preViewport = pdfJsPage.getViewport(PdfjsViewportParams(scale: 1));
     final html.CanvasElement canvas =
         js.context['document'].createElement('canvas');
     final html.CanvasRenderingContext2D context =
         canvas.getContext('2d') as html.CanvasRenderingContext2D;
 
     final viewport = pdfJsPage
-        .getViewport(PdfjsViewportParams(scale: width / _viewport.width));
+        .getViewport(PdfjsViewportParams(scale: width / preViewport.width));
 
     canvas
       ..height = viewport.height.toInt()
@@ -296,8 +308,10 @@ class PdfPageTextureWeb extends PdfPageTexture {
 
   @override
   int? get textureWidth => _texWidth;
+
   @override
   int? get textureHeight => _texHeight;
+
   @override
   bool get hasUpdatedTexture => _texWidth != null;
 
@@ -402,11 +416,14 @@ class PdfPageTextureWeb extends PdfPageTexture {
     final vp1 = page.renderer.getViewport(PdfjsViewportParams(scale: 1));
     final pw = vp1.width;
     //final ph = vp1.height;
-    final _fullWidth = fullWidth ?? pw;
+    final preFullWidth = fullWidth ?? pw;
     //final fullHeight = args['fullHeight'] as double? ?? ph;
-    final _width = width;
-    final _height = height;
-    if (_width == null || _height == null || _width <= 0 || _height <= 0) {
+    final preWidth = width;
+    final preHeight = height;
+    if (preWidth == null ||
+        preHeight == null ||
+        preWidth <= 0 ||
+        preHeight <= 0) {
       return false;
     }
 
@@ -414,15 +431,15 @@ class PdfPageTextureWeb extends PdfPageTexture {
     final offsetY = -sourceY.toDouble();
 
     final vp = page.renderer.getViewport(PdfjsViewportParams(
-      scale: _fullWidth / pw,
+      scale: preFullWidth / pw,
       offsetX: offsetX,
       offsetY: offsetY,
       dontFlip: dontFlip,
     ));
 
     final canvas = (html.document.createElement('canvas') as html.CanvasElement)
-      ..width = _width
-      ..height = _height;
+      ..width = preWidth
+      ..height = preHeight;
 
     final html.CanvasRenderingContext2D context =
         canvas.getContext('2d') as html.CanvasRenderingContext2D;
@@ -430,7 +447,7 @@ class PdfPageTextureWeb extends PdfPageTexture {
     if (backgroundColor != null) {
       context
         ..fillStyle = backgroundColor
-        ..fillRect(0, 0, _width, _height);
+        ..fillRect(0, 0, preWidth, preHeight);
     }
 
     final rendererContext = PdfjsRenderContext(
@@ -453,7 +470,7 @@ class PdfPageTextureWeb extends PdfPageTexture {
     });
     await completer.future;
 
-    return handleRawData(data, _width, _height);
+    return handleRawData(data, preWidth, preHeight);
   }
 }
 
